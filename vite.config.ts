@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     // Needed for cloud dev environments like CodeSandbox preview domains.
-    allowedHosts: true
+    host: true,
+    allowedHosts: [".csb.app", ".codesandbox.io", "localhost"]
   }
 });
