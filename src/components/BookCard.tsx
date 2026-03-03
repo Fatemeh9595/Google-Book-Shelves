@@ -1,4 +1,3 @@
-import Button from "react-bootstrap/Button";
 import Card from "react-bootstrap/Card";
 import { Link } from "react-router-dom";
 import { BookItem } from "../features/books/types";
@@ -34,9 +33,9 @@ export function BookCard({ book }: BookCardProps) {
           <Card.Text className="text-truncate-2 small flex-grow-1">
             {volumeInfo.description ?? "No description available."}
           </Card.Text>
-          <Button as={Link} to={`/book/${book.id}`} variant="outline-primary" size="sm" className="mt-2 align-self-start">
+          <Link to={`/book/${book.id}`} className="btn btn-outline-primary btn-sm mt-2 align-self-start">
             View details
-          </Button>
+          </Link>
         </div>
       </Card.Body>
     </Card>

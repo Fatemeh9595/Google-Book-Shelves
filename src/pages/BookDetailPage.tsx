@@ -49,9 +49,9 @@ export function BookDetailPage() {
 
   return (
     <Stack gap={3}>
-      <Button as={Link} to="/" variant="outline-secondary" className="align-self-start">
+      <Link to="/" className="btn btn-outline-secondary align-self-start">
         Back to search
-      </Button>
+      </Link>
 
       <Card className="shadow-sm">
         <Card.Body className="d-flex flex-column flex-md-row gap-4">
