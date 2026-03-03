@@ -1,0 +1,48 @@
+$primary: #0d6e6e;
+$secondary: #ff7a59;
+$body-bg: #f7f9fc;
+$body-color: #1f2937;
+
+@import "bootstrap/scss/bootstrap";
+
+body {
+  margin: 0;
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.book-card {
+  transition: transform 0.15s ease;
+}
+
+.book-card:hover {
+  transform: translateY(-2px);
+}
+
+.book-thumb {
+  width: 72px;
+  min-width: 72px;
+  height: 108px;
+  object-fit: cover;
+}
+
+.detail-thumb {
+  width: 160px;
+  max-width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+.text-truncate-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.min-w-0 {
+  min-width: 0;
+}
