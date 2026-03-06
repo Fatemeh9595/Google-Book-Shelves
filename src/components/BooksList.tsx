@@ -20,7 +20,7 @@ export function BooksList({ items, status, error }: BooksListProps) {
     );
   }
 
-  if (status === "error") {
+  if (status === "error" && items.length === 0) {
     return (
       <Alert variant="danger" className="mt-3">
         {error ?? "Something went wrong while loading books."}
@@ -38,6 +38,11 @@ export function BooksList({ items, status, error }: BooksListProps) {
 
   return (
     <>
+      {status === "error" && items.length > 0 ? (
+        <Alert variant="warning" className="mt-2 mb-2">
+          {error ?? "Could not refresh right now. Showing previous results."}
+        </Alert>
+      ) : null}
       {status === "loading" && items.length > 0 ? (
         <div className="d-flex align-items-center gap-2 text-muted small mt-2">
           <Spinner animation="border" size="sm" role="status" />

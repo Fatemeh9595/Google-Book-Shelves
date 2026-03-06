@@ -2,7 +2,7 @@ import { BookItem, GoogleBooksListResponse, SearchParams } from "./types";
 
 const BASE_URL = "https://www.googleapis.com/books/v1/volumes";
 const API_KEY = import.meta.env.VITE_GOOGLE_BOOKS_API_KEY;
-const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+const RETRYABLE_STATUS = new Set([500, 502, 503, 504]);
 const MAX_RETRIES = 4;
 const INITIAL_RETRY_DELAY_MS = 300;
 const CACHE_TTL_MS = 1000 * 60 * 30;
@@ -127,6 +127,16 @@ export async function fetchBooks(params: SearchParams): Promise<GoogleBooksListR
   try {
     const response = await fetchWithRetryAndTimeout(url.toString(), retries, timeoutMs);
     if (!response.ok) {
+      if (response.status === 429 && API_KEY) {
+        const noKeyUrl = new URL(url.toString());
+        noKeyUrl.searchParams.delete("key");
+        const noKeyResponse = await fetchWithRetryAndTimeout(noKeyUrl.toString(), 1, timeoutMs);
+        if (noKeyResponse.ok) {
+          const data = (await noKeyResponse.json()) as GoogleBooksListResponse;
+          writeCache(cacheKey, data);
+          return data;
+        }
+      }
       if (cached) {
         return cached;
       }
@@ -158,6 +168,16 @@ export async function fetchBookById(id: string): Promise<BookItem> {
   try {
     const response = await fetchWithRetryAndTimeout(url.toString(), retries, timeoutMs);
     if (!response.ok) {
+      if (response.status === 429 && API_KEY) {
+        const noKeyUrl = new URL(url.toString());
+        noKeyUrl.searchParams.delete("key");
+        const noKeyResponse = await fetchWithRetryAndTimeout(noKeyUrl.toString(), 1, timeoutMs);
+        if (noKeyResponse.ok) {
+          const data = (await noKeyResponse.json()) as BookItem;
+          writeCache(cacheKey, data);
+          return data;
+        }
+      }
       if (cached) {
         return cached;
       }

@@ -87,8 +87,6 @@ const booksSlice = createSlice({
       .addCase(loadBooks.rejected, (state, action) => {
         state.status = "error";
         state.error = action.error.message ?? "Unknown error";
-        state.items = [];
-        state.totalItems = 0;
       })
       .addCase(loadBookDetail.pending, (state) => {
         state.selectedBookStatus = "loading";
