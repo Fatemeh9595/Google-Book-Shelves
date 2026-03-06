@@ -6,6 +6,8 @@ const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
 const MAX_RETRIES = 4;
 const INITIAL_RETRY_DELAY_MS = 300;
 const CACHE_TTL_MS = 1000 * 60 * 30;
+const NETWORK_TIMEOUT_WITH_CACHE_MS = 1800;
+const NETWORK_TIMEOUT_NO_CACHE_MS = 7000;
 
 type GoogleApiErrorResponse = {
   error?: {
@@ -21,14 +23,24 @@ function sleep(ms: number): Promise<void> {
   });
 }
 
-async function fetchWithRetry(url: string): Promise<Response> {
-  let response = await fetch(url);
+async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
 
-  for (let attempt = 1; attempt <= MAX_RETRIES && RETRYABLE_STATUS.has(response.status); attempt += 1) {
+async function fetchWithRetryAndTimeout(url: string, retries: number, timeoutMs: number): Promise<Response> {
+  let response = await fetchWithTimeout(url, timeoutMs);
+
+  for (let attempt = 1; attempt <= retries && RETRYABLE_STATUS.has(response.status); attempt += 1) {
     const jitter = Math.floor(Math.random() * 200);
     const delay = INITIAL_RETRY_DELAY_MS * 2 ** (attempt - 1) + jitter;
     await sleep(delay);
-    response = await fetch(url);
+    response = await fetchWithTimeout(url, timeoutMs);
   }
 
   return response;
@@ -99,6 +111,7 @@ function writeCache<T>(key: string, value: T): void {
 export async function fetchBooks(params: SearchParams): Promise<GoogleBooksListResponse> {
   const { query, page, pageSize } = params;
   const cacheKey = `books:list:${query.trim().toLowerCase()}:${page}:${pageSize}`;
+  const cached = readCache<GoogleBooksListResponse>(cacheKey);
   const startIndex = (page - 1) * pageSize;
   const url = new URL(BASE_URL);
   url.searchParams.set("q", query);
@@ -108,36 +121,55 @@ export async function fetchBooks(params: SearchParams): Promise<GoogleBooksListR
     url.searchParams.set("key", API_KEY);
   }
 
-  const response = await fetchWithRetry(url.toString());
-  if (!response.ok) {
-    const cached = readCache<GoogleBooksListResponse>(cacheKey);
+  const retries = cached ? 1 : MAX_RETRIES;
+  const timeoutMs = cached ? NETWORK_TIMEOUT_WITH_CACHE_MS : NETWORK_TIMEOUT_NO_CACHE_MS;
+
+  try {
+    const response = await fetchWithRetryAndTimeout(url.toString(), retries, timeoutMs);
+    if (!response.ok) {
+      if (cached) {
+        return cached;
+      }
+      throw await buildError("Unable to fetch books", response);
+    }
+
+    const data = (await response.json()) as GoogleBooksListResponse;
+    writeCache(cacheKey, data);
+    return data;
+  } catch (error) {
     if (cached) {
       return cached;
     }
-    throw await buildError("Unable to fetch books", response);
+    throw error;
   }
-
-  const data = (await response.json()) as GoogleBooksListResponse;
-  writeCache(cacheKey, data);
-  return data;
 }
 
 export async function fetchBookById(id: string): Promise<BookItem> {
   const cacheKey = `books:detail:${id}`;
+  const cached = readCache<BookItem>(cacheKey);
   const url = new URL(`${BASE_URL}/${id}`);
   if (API_KEY) {
     url.searchParams.set("key", API_KEY);
   }
 
-  const response = await fetchWithRetry(url.toString());
-  if (!response.ok) {
-    const cached = readCache<BookItem>(cacheKey);
+  const retries = cached ? 1 : MAX_RETRIES;
+  const timeoutMs = cached ? NETWORK_TIMEOUT_WITH_CACHE_MS : NETWORK_TIMEOUT_NO_CACHE_MS;
+
+  try {
+    const response = await fetchWithRetryAndTimeout(url.toString(), retries, timeoutMs);
+    if (!response.ok) {
+      if (cached) {
+        return cached;
+      }
+      throw await buildError("Unable to fetch book detail", response);
+    }
+    const data = (await response.json()) as BookItem;
+    writeCache(cacheKey, data);
+    return data;
+  } catch (error) {
     if (cached) {
       return cached;
     }
-    throw await buildError("Unable to fetch book detail", response);
+    throw error;
   }
-  const data = (await response.json()) as BookItem;
-  writeCache(cacheKey, data);
-  return data;
 }

@@ -12,7 +12,7 @@ interface BooksListProps {
 }
 
 export function BooksList({ items, status, error }: BooksListProps) {
-  if (status === "loading") {
+  if (status === "loading" && items.length === 0) {
     return (
       <div className="py-5 text-center">
         <Spinner animation="border" role="status" />
@@ -37,12 +37,20 @@ export function BooksList({ items, status, error }: BooksListProps) {
   }
 
   return (
-    <Row className="g-3 mt-1">
-      {items.map((book) => (
-        <Col key={book.id} xs={12}>
-          <BookCard book={book} />
-        </Col>
-      ))}
-    </Row>
+    <>
+      {status === "loading" && items.length > 0 ? (
+        <div className="d-flex align-items-center gap-2 text-muted small mt-2">
+          <Spinner animation="border" size="sm" role="status" />
+          Refreshing results...
+        </div>
+      ) : null}
+      <Row className="g-3 mt-1">
+        {items.map((book) => (
+          <Col key={book.id} xs={12}>
+            <BookCard book={book} />
+          </Col>
+        ))}
+      </Row>
+    </>
   );
 }
